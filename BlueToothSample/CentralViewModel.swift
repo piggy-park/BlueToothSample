@@ -12,6 +12,7 @@ import OSLog
 final class CentralViewModel: NSObject, ObservableObject {
     @Published var peripheralList: [CBPeripheral] = []
     @Published var blueToothStatus: CBManagerAuthorization = .notDetermined
+    @Published var receivedChatingText: ChattingText = .init(text: "")
     var centralManager: CBCentralManager?
 
     var discoveredPeripheral: CBPeripheral?

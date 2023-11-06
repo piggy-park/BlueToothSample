@@ -86,13 +86,13 @@
 			isa = PBXGroup;
 			children = (
 				E409967F2AEF684B001E552C /* BlueToothSampleApp.swift */,
-				E43F4CB02AF8BD6A009423EA /* LazyView.swift */,
 				E40996812AEF684B001E552C /* SelectBlutoothModeView.swift */,
 				E409968D2AEF6A60001E552C /* CentralView.swift */,
 				E40996932AEF9E8F001E552C /* CentralViewModel.swift */,
 				E409968F2AEF6A67001E552C /* PeripheralView.swift */,
 				E43F4CA62AF4AE82009423EA /* PeripheralViewModel.swift */,
 				E40996912AEF7E17001E552C /* BlueToothInfo.swift */,
+				E43F4CB02AF8BD6A009423EA /* LazyView.swift */,
 				E40996832AEF684C001E552C /* Assets.xcassets */,
 				E40996852AEF684C001E552C /* Preview Content */,
 			);
@@ -381,6 +381,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -411,6 +412,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
