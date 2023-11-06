@@ -9,7 +9,7 @@ import OSLog
 import CoreBluetooth
 
 final class PeripheralViewModel: NSObject, ObservableObject {
-    @Published var startAdvertising: Bool = false
+    @Published var blueToothStatus: CBManagerAuthorization = .notDetermined
 
     private var peripheralManager: CBPeripheralManager?
     var transferCharacteristic: CBMutableCharacteristic?
@@ -19,6 +19,11 @@ final class PeripheralViewModel: NSObject, ObservableObject {
     var sendMessageButtonTapped: Bool = false
     var sendText: String = ""
     private var sendingEOM = false
+
+    override init() {
+        super.init()
+        setPeripheralManager()
+    }
 
     func setPeripheralManager() {
         peripheralManager = CBPeripheralManager(delegate: self, queue: nil, options: [CBPeripheralManagerOptionShowPowerAlertKey: true])
@@ -130,40 +135,20 @@ extension PeripheralViewModel: CBPeripheralManagerDelegate {
 
         switch peripheral.state {
         case .poweredOn:
-            // ... so start working with the peripheral
             blueToothLog("CBManager is powered on")
             setupPeripheral()
         case .poweredOff:
             blueToothLog("CBManager is not powered on")
-            // In a real app, you'd deal with all the states accordingly
-            return
         case .resetting:
             blueToothLog("CBManager is resetting")
-            // In a real app, you'd deal with all the states accordingly
-            return
         case .unauthorized:
-            // In a real app, you'd deal with all the states accordingly
-            switch CBManager.authorization {
-            case .denied:
-                blueToothLog("You are not authorized to use Bluetooth")
-            case .restricted:
-                blueToothLog("Bluetooth is restricted")
-            default:
-                blueToothLog("Unexpected authorization")
-            }
-            return
+            self.blueToothStatus =  CBManager.authorization
         case .unknown:
             blueToothLog("CBManager state is unknown")
-            // In a real app, you'd deal with all the states accordingly
-            return
         case .unsupported:
             blueToothLog("Bluetooth is not supported on this device")
-            // In a real app, you'd deal with all the states accordingly
-            return
         @unknown default:
             blueToothLog("A previously unknown peripheral manager state occurred")
-            // In a real app, you'd deal with yet unknown cases that might occur in the future
-            return
         }
     }
 

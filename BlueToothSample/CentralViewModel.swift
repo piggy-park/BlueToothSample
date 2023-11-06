@@ -11,6 +11,7 @@ import OSLog
 
 final class CentralViewModel: NSObject, ObservableObject {
     @Published var peripheralList: [CBPeripheral] = []
+    @Published var blueToothStatus: CBManagerAuthorization = .notDetermined
     var centralManager: CBCentralManager?
 
     var discoveredPeripheral: CBPeripheral?
@@ -24,6 +25,12 @@ final class CentralViewModel: NSObject, ObservableObject {
     let defaultIterations = 5     // change this value based on test usecase
 
     var data = Data()
+
+    override init() {
+        super.init()
+        setCentralManager()
+    }
+
 
     func setCentralManager() {
         self.centralManager = .init(delegate: self, queue: nil, options: [CBCentralManagerOptionShowPowerAlertKey: true])
@@ -55,7 +62,6 @@ final class CentralViewModel: NSObject, ObservableObject {
         centralManager?.stopScan()
         data.removeAll(keepingCapacity: false)
     }
-
 
     /*
      *  Call this when things either go wrong, or you're done with the connection.
@@ -127,14 +133,7 @@ extension CentralViewModel: CBCentralManagerDelegate {
         case .unsupported:
             blueToothLog("Bluetooth is not supported on this device")
         case .unauthorized:
-            switch CBManager.authorization {
-            case .denied:
-                blueToothLog("You are not authorized to use Bluetooth")
-            case .restricted:
-                blueToothLog("Bluetooth is restricted")
-            default:
-                blueToothLog("Unexpected authorization")
-            }
+            self.blueToothStatus = CBManager.authorization
         case .poweredOff:
             blueToothLog("CBManager is not powered on")
         case .poweredOn:
