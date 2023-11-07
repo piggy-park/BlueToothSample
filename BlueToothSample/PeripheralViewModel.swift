@@ -10,13 +10,13 @@ import CoreBluetooth
 
 final class PeripheralViewModel: NSObject, ObservableObject {
     @Published var blueToothStatus: CBManagerAuthorization = .notDetermined
+    @Published var sentText: ChattingText = .init(text: "")
 
     private var peripheralManager: CBPeripheralManager?
     var transferCharacteristic: CBMutableCharacteristic?
     var connectedCentral: CBCentral?
     var dataToSend = Data()
     var sendDataIndex: Int = 0
-    var sendMessageButtonTapped: Bool = false
     var sendText: String = ""
     private var sendingEOM = false
 
@@ -30,12 +30,12 @@ final class PeripheralViewModel: NSObject, ObservableObject {
     }
 
     func start() {
-        blueToothLog("start advertising")
+        blueToothLog(deviceType: .periphearl, "start advertising")
         peripheralManager?.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [BlueToothInfo.serviceUUID]])
     }
 
     func stop() {
-        blueToothLog("stop advertising")
+        blueToothLog(deviceType: .periphearl, "stop advertising")
         peripheralManager?.stopAdvertising()
     }
     // MARK: - Helper Methods
@@ -44,14 +44,16 @@ final class PeripheralViewModel: NSObject, ObservableObject {
      *  Sends the next amount of data to the connected central
      */
     private func sendData() {
-        guard let transferCharacteristic = transferCharacteristic else { return }
+        guard let transferCharacteristic = transferCharacteristic,
+              let peripheralManager = peripheralManager else { return }
         // 보낼 마지막 메세지(EOM) 여부 Flag확인
         if sendingEOM {
-            guard let didSend = peripheralManager?.updateValue("EOM".data(using: .utf8) ?? Data(), for: transferCharacteristic, onSubscribedCentrals: nil) else { return }
+            let didSend = peripheralManager.updateValue("EOM".data(using: .utf8)!, for: transferCharacteristic, onSubscribedCentrals: nil)
             // EOM 보내기 성공시
             if didSend {
                 sendingEOM = false
-                blueToothLog("Sent: EOM")
+                self.sentText = .init(text: sendText)
+                blueToothLog(deviceType: .periphearl, "Sent: EOM")
             }
             // It didn't send, so we'll exit and wait for peripheralManagerIsReadyToUpdateSubscribers to call sendData again
             return
@@ -69,8 +71,8 @@ final class PeripheralViewModel: NSObject, ObservableObject {
         // callback이 실패하거나 전송이 끝날 때 까지 계속
         while didSend {
             var amountToSend = dataToSend.count - sendDataIndex
+
             // 연결된 central이 받을 수 있는 최대 양 비교
-            
             if let mtu = connectedCentral?.maximumUpdateValueLength {
                 amountToSend = min(amountToSend, mtu)
             }
@@ -78,13 +80,13 @@ final class PeripheralViewModel: NSObject, ObservableObject {
             // 필요한 만큼 데이터 잘라서 카피
             let chunk = dataToSend.subdata(in: sendDataIndex..<(sendDataIndex + amountToSend))
             // Send
-            didSend = ((peripheralManager?.updateValue(chunk, for: transferCharacteristic, onSubscribedCentrals: nil)) != nil)
+            didSend = peripheralManager.updateValue(chunk, for: transferCharacteristic, onSubscribedCentrals: nil)
 
             // 만약 데이터 전송에 실패한다면 리턴 후 call back 기다림
             if !didSend { return }
 
             let stringFromData = String(data: chunk, encoding: .utf8)
-            blueToothLog("Sent \(chunk.count) bytes: \(String(describing: stringFromData))")
+            blueToothLog(deviceType: .periphearl, "Sent \(chunk.count) bytes: \(String(describing: stringFromData))")
 
             // 보내기 성공시 data index 변경
             sendDataIndex += amountToSend
@@ -94,25 +96,32 @@ final class PeripheralViewModel: NSObject, ObservableObject {
                 sendingEOM = true
 
                 // EOM Send it
-                let eomSent = peripheralManager?.updateValue("EOM".data(using: .utf8) ?? Data(),
+                let eomSent = peripheralManager.updateValue("EOM".data(using: .utf8)!,
                                                              for: transferCharacteristic, onSubscribedCentrals: nil)
                 // 성공시
-                if eomSent ?? false {
+                if eomSent {
+                    self.sentText = .init(text: sendText)
                     // It sent; we're all done
                     sendingEOM = false
-                    blueToothLog("Sent: EOM")
+                    blueToothLog(deviceType: .periphearl, "Sent: EOM")
                 }
                 return
             }
         }
     }
 
-    private func setupPeripheral() {
-        // build service
+    func send(_ text: String) {
+        self.sendText = text
+        dataToSend = sendText.data(using: .utf8) ?? Data()
+        // Reset the index
+        sendDataIndex = 0
+        sendData()
+    }
 
+    private func setupPeripheral() {
         // Start with the CBMutableCharacteristic.
         let transferCharacteristic = CBMutableCharacteristic(type: BlueToothInfo.characteristicUUID,
-                                                         properties: [.notify, .writeWithoutResponse],
+                                                             properties: [.writeWithoutResponse, .notify],
                                                          value: nil,
                                                          permissions: [.readable, .writeable])
 
@@ -135,20 +144,22 @@ extension PeripheralViewModel: CBPeripheralManagerDelegate {
 
         switch peripheral.state {
         case .poweredOn:
-            blueToothLog("CBManager is powered on")
+            blueToothLog(deviceType: .periphearl, "CBManager is powered on")
             setupPeripheral()
+            start()
         case .poweredOff:
-            blueToothLog("CBManager is not powered on")
+            blueToothLog(deviceType: .periphearl, "CBManager is not powered on")
+            stop()
         case .resetting:
-            blueToothLog("CBManager is resetting")
+            blueToothLog(deviceType: .periphearl, "CBManager is resetting")
         case .unauthorized:
             self.blueToothStatus =  CBManager.authorization
         case .unknown:
-            blueToothLog("CBManager state is unknown")
+            blueToothLog(deviceType: .periphearl, "CBManager state is unknown")
         case .unsupported:
-            blueToothLog("Bluetooth is not supported on this device")
+            blueToothLog(deviceType: .periphearl, "Bluetooth is not supported on this device")
         @unknown default:
-            blueToothLog("A previously unknown peripheral manager state occurred")
+            blueToothLog(deviceType: .periphearl, "A previously unknown peripheral manager state occurred")
         }
     }
 
@@ -156,49 +167,37 @@ extension PeripheralViewModel: CBPeripheralManagerDelegate {
      *  Catch when someone subscribes to our characteristic, then start sending them data
      */
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
-        blueToothLog("Central subscribed to characteristic")
-
-        dataToSend = sendText.data(using: .utf8) ?? Data()
-        // Reset the index
-        sendDataIndex = 0
-
+        blueToothLog(deviceType: .periphearl, "Central subscribed to characteristic")
         // save central
         connectedCentral = central
-
-        // Start sending
-        sendData()
     }
 
     /*
      *  Recognize when the central unsubscribes
      */
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
-        blueToothLog("Central unsubscribed from characteristic")
+        blueToothLog(deviceType: .periphearl, "Central unsubscribed from characteristic")
         connectedCentral = nil
-        stop()
     }
 
-    /*
-     *  This callback comes in when the PeripheralManager is ready to send the next chunk of data.
-     *  This is to ensure that packets will arrive in the order they are sent
-     */
+    //  현재 큐에 자리가 없어서 전송에 실패했을 경우, 준비가 되면 그때 다시 send함.
     func peripheralManagerIsReady(toUpdateSubscribers peripheral: CBPeripheralManager) {
-        blueToothLog("send another chunk data Byte:\(dataToSend.count)")
-        // Start sending again
+        blueToothLog(deviceType: .periphearl, "send another chunk data Byte:\(dataToSend.count)")
         sendData()
     }
 
-    /*
-     * This callback comes in when the PeripheralManager received write to characteristics
-     */
+    // 값 수정시 호출됨.
     func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveWrite requests: [CBATTRequest]) {
+
         for aRequest in requests {
             guard let requestValue = aRequest.value,
                 let stringFromData = String(data: requestValue, encoding: .utf8) else {
                     continue
             }
-
-            blueToothLog("Received write request of \(requestValue.count) bytes: \(stringFromData)")
+            blueToothLog(deviceType: .periphearl, "Received write request of \(requestValue.count) bytes: \(stringFromData)")
+            if stringFromData != "EOM" {
+                send(stringFromData)
+            }
         }
     }
 }

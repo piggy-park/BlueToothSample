@@ -16,6 +16,16 @@ struct BlueToothInfo {
 
 
 // static string을 우회하기 위해 arg를 message로 수정
-func blueToothLog(log: OSLog = .default, type: OSLogType = .default, _ message: CVarArg...) {
-    os_log(type, log: log, "%@", "BlueTooth: \(message)")
+func blueToothLog(deviceType: DeviceType, log: OSLog = .default, type: OSLogType = .default, _ message: CVarArg...) {
+    switch deviceType {
+    case .central:
+        os_log(type, log: log, "%@", "BlueTooth(Central): \(message)")
+    case .periphearl:
+        os_log(type, log: log, "%@", "BlueTooth(Periphearl): \(message)")
+    }
+}
+
+enum DeviceType {
+    case central
+    case periphearl
 }

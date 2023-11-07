@@ -10,20 +10,36 @@ import CoreBluetooth
 
 struct PeripheralView: View {
     @ObservedObject var viewModel: PeripheralViewModel = .init()
-    @State private var sendText: String = ""
+    @State private var textToSend: String = ""
     @State private var showJoinAlert: Bool = false
     @State private var showBlueToothAuthAlert: Bool = false
+    @State private var chatHistory: [ChattingText] = []
+    @FocusState private var textfieldFoucs
 
     var body: some View {
         VStack {
-            TextField("input text", text: $sendText)
-                .textFieldStyle(.roundedBorder)
-                .padding()
-
-            Button("send text") {
-                viewModel.start()
-                viewModel.sendText = sendText
+            Text("Periphearl View")
+            List {
+                ForEach(chatHistory) {
+                    Text($0.text)
+                }
             }
+            .listStyle(.plain)
+
+            HStack {
+                TextField("input text", text: $textToSend)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($textfieldFoucs)
+                    .padding()
+
+                Button("send text") {
+                    let text = "사람1: \(textToSend)"
+                    viewModel.send(text)
+                    self.textToSend = ""
+                    self.textfieldFoucs = false
+                }
+            }
+            .padding()
         }
         .padding()
         .alert("블루투스 권한이 필요합니다", isPresented: $showBlueToothAuthAlert, actions: {
@@ -39,12 +55,17 @@ struct PeripheralView: View {
         .onDisappear {
             viewModel.stop()
         }
+        .onChange(of: viewModel.sentText, perform: {
+            chatHistory.append($0)
+        })
         .onChange(of: viewModel.blueToothStatus, perform: { value in
             switch value {
+            case .allowedAlways:
+                viewModel.start()
             case .denied, .restricted:
                 self.showBlueToothAuthAlert = true
             default:
-                blueToothLog("Unexpected authorization")
+                blueToothLog(deviceType: .central, "Unexpected authorization")
             }
         })
     }

@@ -372,7 +372,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"BlueToothSample/Preview Content\"";
-				DEVELOPMENT_TEAM = N6KUR9465F;
+				DEVELOPMENT_TEAM = KVQ3SYH7AU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "블루투스 좀 쓸게?";
@@ -403,7 +403,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"BlueToothSample/Preview Content\"";
-				DEVELOPMENT_TEAM = N6KUR9465F;
+				DEVELOPMENT_TEAM = KVQ3SYH7AU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "블루투스 좀 쓸게?";

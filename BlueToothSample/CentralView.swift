@@ -12,62 +12,70 @@ import OSLog
 struct CentralView: View {
     @ObservedObject var viewModel: CentralViewModel = .init()
     @State private var showBlueToothAuthAlert: Bool = false
-    @State private var chats: [ChattingText] = []
+    @State private var chatHistory: [ChattingText] = []
+    @State private var textToSend: String = ""
+    @FocusState private var textfieldFoucs
 
     var body: some View {
-        List {
+        VStack {
             Text("Central View")
-            ForEach(chats) {
-                Text($0.text)
-            }
-//            Button("stop") {
-//                viewModel.stop()
-//            }
-//            Section {
-//                ForEach(viewModel.peripheralList) { item in
-//                    Button(action: {
-////                        viewModel.connect(item)
-//                    }, label: {
-//                        Text("\(item.name ?? "hi")")
-//                    })
-//                }
-//            } header: {
-//                HStack {
-//                    Text("연결 가능 기기")
-//                        .bold()
-//                }
-//            }
-        }
-        .alert("블루투스 권한이 필요합니다", isPresented: $showBlueToothAuthAlert, actions: {
-            Button("취소", role: .cancel) { 
-                self.showBlueToothAuthAlert = false
-            }
-            Button("설정") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
+            List {
+                ForEach(chatHistory) {
+                    Text($0.text)
                 }
             }
-        })
+            .listStyle(.plain)
+            .alert("블루투스 권한이 필요합니다", isPresented: $showBlueToothAuthAlert, actions: {
+                Button("취소", role: .cancel) {
+                    self.showBlueToothAuthAlert = false
+                }
+                Button("설정") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            })
+            HStack {
+                TextField("텍스트를 입력해 주세요", text: $textToSend)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($textfieldFoucs)
+
+                Button("전송") {
+                    let text = "사람2: \(textToSend)"
+                    viewModel.send(text)
+                    self.textToSend = ""
+                    self.textfieldFoucs = false
+                }
+            }
+            .padding()
+        }
         .onDisappear(perform: {
             viewModel.stop()
         })
         .onChange(of: viewModel.receivedChatingText, perform: { value in
-            chats.append(value)
+            chatHistory.append(value)
         })
         .onChange(of: viewModel.blueToothStatus, perform: { value in
             switch value {
             case .denied, .restricted:
                 self.showBlueToothAuthAlert = true
             default:
-                blueToothLog("Unexpected authorization")
+                blueToothLog(deviceType: .central, "Unexpected authorization")
             }
         })
     }
 }
 
-struct ChattingText: Identifiable, Equatable {
+struct ChattingText: Identifiable {
     var id: String {
-        return "\(Date()) \(text)"
+        return "\(date) \(text)"
     }
+    let date = Date()
     let text: String
+}
+
+extension ChattingText: Equatable {
+    static func == (lhs: ChattingText, rhs: ChattingText) -> Bool {
+        return lhs.date.timeIntervalSince1970 == rhs.date.timeIntervalSince1970
+    }
 }

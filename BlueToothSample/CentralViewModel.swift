@@ -18,50 +18,47 @@ final class CentralViewModel: NSObject, ObservableObject {
     var discoveredPeripheral: CBPeripheral?
     var transferCharacteristic: CBCharacteristic?
     var writeCharacteristic: CBCharacteristic?
-    var writeIterationsComplete = 0
-    var connectionIterationsComplete = 0
-
+    var receivedData = Data()
+    var dataToSend = Data()
+    var sendDataIndex: Int = 0
     private var writeType: CBCharacteristicWriteType = .withoutResponse
-
-    let defaultIterations = 5     // change this value based on test usecase
-
-    var data = Data()
+    var sendingEOM = false
 
     override init() {
         super.init()
         setCentralManager()
     }
 
-
     func setCentralManager() {
         self.centralManager = .init(delegate: self, queue: nil, options: [CBCentralManagerOptionShowPowerAlertKey: true])
     }
 
     private func retrievePeripheral() {
-        // 기존에 이미 연결된 Peripheral의 service인지 확인 후 연결
-        let connectedPeripherals: [CBPeripheral] = (centralManager?.retrieveConnectedPeripherals(withServices: [BlueToothInfo.serviceUUID]))!
+        guard let centralManager =  centralManager else { return }
+        // 기존에 이미 연결된 Peripheral의 service들 확인
+        let connectedPeripherals: [CBPeripheral] = centralManager.retrieveConnectedPeripherals(withServices: [BlueToothInfo.serviceUUID])
 
-        blueToothLog("Found connected Peripherals with transfer service:\(connectedPeripherals)")
+        blueToothLog(deviceType: .central, "Found connected Peripherals with transfer service:\(connectedPeripherals)")
 
         if let connectedPeripheral = connectedPeripherals.last {
-            blueToothLog("Connecting to peripheral\(connectedPeripheral)")
+            blueToothLog(deviceType: .central, "Connecting to peripheral\(connectedPeripheral)")
             self.discoveredPeripheral = connectedPeripheral
-            centralManager?.connect(connectedPeripheral, options: nil)
+            centralManager.connect(connectedPeripheral, options: nil)
 
             peripheralList.append(connectedPeripheral)
 
         } else {
             // 만약 찾지 못했다면 scan 시작
-            blueToothLog("Scanning start")
-            centralManager?.scanForPeripherals(withServices: [BlueToothInfo.serviceUUID],
-                                               options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
+            blueToothLog(deviceType: .central,"Scanning start")
+            centralManager.scanForPeripherals(withServices: [BlueToothInfo.serviceUUID],
+                                              options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
         }
     }
 
     func stop() {
-        blueToothLog("Scanning stopped")
+        blueToothLog(deviceType: .central,"Scanning stopped")
         centralManager?.stopScan()
-        data.removeAll(keepingCapacity: false)
+        receivedData.removeAll(keepingCapacity: false)
     }
 
     /*
@@ -72,7 +69,7 @@ final class CentralViewModel: NSObject, ObservableObject {
     private func cleanup() {
         // Don't do anything if we're not connected
         guard let discoveredPeripheral = discoveredPeripheral,
-            case .connected = discoveredPeripheral.state else { return }
+              case .connected = discoveredPeripheral.state else { return }
 
         for service in (discoveredPeripheral.services ?? [] as [CBService]) {
             for characteristic in (service.characteristics ?? [] as [CBCharacteristic]) {
@@ -88,37 +85,53 @@ final class CentralViewModel: NSObject, ObservableObject {
         peripheralList.removeAll()
     }
 
+    func send(_ text: String) {
+        self.dataToSend = text.data(using: .utf8) ?? Data()
+        sendDataIndex = 0
+        writeData()
+    }
+
     /*
      *  Write some test data to peripheral
      */
     private func writeData() {
 
         guard let discoveredPeripheral = discoveredPeripheral,
-                let transferCharacteristic = transferCharacteristic
-            else { return }
+              let transferCharacteristic = transferCharacteristic
+        else { return }
 
-        // check to see if number of iterations completed and peripheral can accept more data
-        while writeIterationsComplete < defaultIterations && discoveredPeripheral.canSendWriteWithoutResponse {
-
-            let mtu = discoveredPeripheral.maximumWriteValueLength (for: .withoutResponse)
-            var rawPacket = [UInt8]()
-
-            let bytesToCopy: size_t = min(mtu, data.count)
-            data.copyBytes(to: &rawPacket, count: bytesToCopy)
-            let packetData = Data(bytes: &rawPacket, count: bytesToCopy)
-
-            let stringFromData = String(data: packetData, encoding: .utf8)
-            blueToothLog("Writing \(bytesToCopy) bytes: \(String(describing: stringFromData))")
-
-            discoveredPeripheral.writeValue(packetData, for: transferCharacteristic, type: .withoutResponse)
-
-            writeIterationsComplete += 1
-
+        if sendingEOM {
+            discoveredPeripheral.writeValue("EOM".data(using: .utf8)!, for: transferCharacteristic, type: writeType)
+            //            let text = String(data: self.receivedData, encoding: .utf8) ?? ""
+            //            self.receivedChatingText = ChattingText(text: text)
+            blueToothLog(deviceType: .central, "Sent: EOM")
+            sendingEOM = false
+            return
         }
 
-        if writeIterationsComplete == defaultIterations {
-            // Cancel our subscription to the characteristic
-            discoveredPeripheral.setNotifyValue(false, for: transferCharacteristic)
+        if sendDataIndex >= dataToSend.count {
+            return
+        }
+
+        while true {
+            // TODO: -- 전송후 에러 처리 해야함.
+            var amountToSend = dataToSend.count - sendDataIndex
+            let mtu = discoveredPeripheral.maximumWriteValueLength (for: writeType)
+            amountToSend = min(amountToSend, mtu)
+
+            let chunk = dataToSend.subdata(in: sendDataIndex..<(sendDataIndex + amountToSend))
+
+            let stringFromData = String(data: chunk, encoding: .utf8)
+            blueToothLog(deviceType: .central, "Writing \(chunk.count) bytes: \(String(describing: stringFromData))")
+
+            discoveredPeripheral.writeValue(chunk, for: transferCharacteristic, type: writeType)
+            sendDataIndex += amountToSend
+            if sendDataIndex >= dataToSend.count {
+                discoveredPeripheral.writeValue("EOM".data(using: .utf8)!, for: transferCharacteristic, type: writeType)
+                blueToothLog(deviceType: .central, "Sent: EOM")
+                self.sendingEOM = false
+                return
+            }
         }
     }
 }
@@ -128,20 +141,20 @@ extension CentralViewModel: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch central.state {
         case .unknown:
-            blueToothLog("CBManager state is unknown")
+            blueToothLog(deviceType: .central, "CBManager state is unknown")
         case .resetting:
-            blueToothLog("CBManager is resetting")
+            blueToothLog(deviceType: .central, "CBManager is resetting")
         case .unsupported:
-            blueToothLog("Bluetooth is not supported on this device")
+            blueToothLog(deviceType: .central, "Bluetooth is not supported on this device")
         case .unauthorized:
             self.blueToothStatus = CBManager.authorization
         case .poweredOff:
-            blueToothLog("CBManager is not powered on")
+            blueToothLog(deviceType: .central, "CBManager is not powered on")
         case .poweredOn:
-            blueToothLog("CBManager is powered on")
+            blueToothLog(deviceType: .central, "CBManager is powered on")
             retrievePeripheral()
         @unknown default:
-            blueToothLog("A previously unknown central manager state occurred")
+            blueToothLog(deviceType: .central, "A previously unknown central manager state occurred")
         }
     }
 
@@ -156,11 +169,11 @@ extension CentralViewModel: CBCentralManagerDelegate {
         // Reject if the signal strength is too low to attempt data transfer.
         // Change the minimum RSSI value depending on your app’s use case.
         guard RSSI.doubleValue >= -50
-            else {
-            blueToothLog("Discovered perhiperal not in expected range, at \(RSSI.intValue)", RSSI.intValue)
-                return
+        else {
+            blueToothLog(deviceType: .central, "Discovered perhiperal not in expected range, at \(RSSI.intValue)", RSSI.intValue)
+            return
         }
-        blueToothLog("Discovered \(String(describing: peripheral.name)) at \(RSSI.intValue)")
+        blueToothLog(deviceType: .central, "Discovered \(String(describing: peripheral.name)) at \(RSSI.intValue)")
 
         // Device is in range - have we already seen it?
         if discoveredPeripheral != peripheral {
@@ -169,14 +182,14 @@ extension CentralViewModel: CBCentralManagerDelegate {
             discoveredPeripheral = peripheral
 
             // And finally, connect to the peripheral.
-            blueToothLog("Connecting to perhiperal \(peripheral)")
+            blueToothLog(deviceType: .central, "Connecting to perhiperal \(peripheral)")
             centralManager?.connect(peripheral, options: nil)
         }
     }
 
     // 연결 실패 했을 때
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
-        blueToothLog("Failed to connect to \(peripheral). \(String(describing: error))")
+        blueToothLog(deviceType: .central, "Failed to connect to \(peripheral). \(String(describing: error))")
         cleanup()
     }
 
@@ -184,18 +197,14 @@ extension CentralViewModel: CBCentralManagerDelegate {
      *  We've connected to the peripheral, now we need to discover the services and characteristics to find the 'transfer' characteristic.
      */
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        blueToothLog("Peripheral Connected")
+        blueToothLog(deviceType: .central, "Peripheral Connected")
 
         // Stop scanning
         centralManager?.stopScan()
-        blueToothLog("Scanning stopped")
-
-        // set iteration info
-        connectionIterationsComplete += 1
-        writeIterationsComplete = 0
+        blueToothLog(deviceType: .central, "Scanning stopped")
 
         // Clear the data that we may already have
-        data.removeAll(keepingCapacity: false)
+        receivedData.removeAll(keepingCapacity: false)
 
         // Make sure we get the discovery callbacks
         peripheral.delegate = self
@@ -208,18 +217,12 @@ extension CentralViewModel: CBCentralManagerDelegate {
      *  Once the disconnection happens, we need to clean up our local copy of the peripheral
      */
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        blueToothLog("Perhiperal Disconnected")
+        blueToothLog(deviceType: .central, "Perhiperal Disconnected")
         discoveredPeripheral = nil
 
         // We're disconnected, so start scanning again
-        if connectionIterationsComplete < defaultIterations {
-            retrievePeripheral()
-        } else {
-            blueToothLog("Connection iterations completed")
-        }
+        retrievePeripheral()
     }
-
-
 }
 
 extension CentralViewModel: CBPeripheralDelegate {
@@ -230,7 +233,7 @@ extension CentralViewModel: CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didModifyServices invalidatedServices: [CBService]) {
 
         for service in invalidatedServices where service.uuid == BlueToothInfo.serviceUUID {
-            blueToothLog("Transfer service is invalidated - rediscover services")
+            blueToothLog(deviceType: .central, "Transfer service is invalidated - rediscover services")
             peripheral.discoverServices([BlueToothInfo.serviceUUID])
         }
     }
@@ -240,7 +243,7 @@ extension CentralViewModel: CBPeripheralDelegate {
      */
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         if let error = error {
-            blueToothLog("Error discovering services: %s", error.localizedDescription)
+            blueToothLog(deviceType: .central, "Error discovering services: %s", error.localizedDescription)
             cleanup()
             return
         }
@@ -261,7 +264,7 @@ extension CentralViewModel: CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         // Deal with errors (if any).
         if let error = error {
-            blueToothLog("Error discovering characteristics: \(error.localizedDescription)")
+            blueToothLog(deviceType: .central, "Error discovering characteristics: \(error.localizedDescription)")
             cleanup()
             return
         }
@@ -283,29 +286,24 @@ extension CentralViewModel: CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         // Deal with errors (if any)
         if let error = error {
-            blueToothLog("Error discovering characteristics: \(error.localizedDescription)")
+            blueToothLog(deviceType: .central, "Error discovering characteristics: \(error.localizedDescription)")
             cleanup()
             return
         }
 
         guard let characteristicData = characteristic.value,
-            let stringFromData = String(data: characteristicData, encoding: .utf8) else { return }
+              let stringFromData = String(data: characteristicData, encoding: .utf8) else { return }
 
-        blueToothLog("Received \(characteristic.accessibilityElementCount()) bytes: \(stringFromData)")
+        blueToothLog(deviceType: .central, "Received \(characteristic.accessibilityElementCount()) bytes: \(stringFromData)")
 
         // Have we received the end-of-message token?
         if stringFromData == "EOM" {
-            // End-of-message case: show the data.
-            // Dispatch the text view update to the main queue for updating the UI, because
-            // we don't know which thread this method will be called back on.
-            DispatchQueue.main.async() {
-                self.peripheralList.append(peripheral)
-            }
-            // Write test data
-            writeData()
+            let text = String(data: self.receivedData, encoding: .utf8) ?? ""
+            self.receivedChatingText = ChattingText(text: text)
+            self.receivedData.removeAll()
         } else {
             // Otherwise, just append the data to what we have previously received.
-            data.append(characteristicData)
+            receivedData.append(characteristicData)
         }
     }
 
@@ -313,9 +311,8 @@ extension CentralViewModel: CBPeripheralDelegate {
      *  The peripheral letting us know whether our subscribe/unsubscribe happened or not
      */
     func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
-        // Deal with errors (if any)
         if let error = error {
-            blueToothLog("Error changing notification state: \(error.localizedDescription)")
+            blueToothLog(deviceType: .central, "Error changing notification state: \(error.localizedDescription)")
             return
         }
 
@@ -324,10 +321,10 @@ extension CentralViewModel: CBPeripheralDelegate {
 
         if characteristic.isNotifying {
             // Notification has started
-            blueToothLog("Notification began on \(characteristic)")
+            blueToothLog(deviceType: .central, "Notification began on \(characteristic)")
         } else {
             // Notification has stopped, so disconnect from the peripheral
-            blueToothLog("Notification stopped on \(characteristic). Disconnecting")
+            blueToothLog(deviceType: .central, "Notification stopped on \(characteristic). Disconnecting")
             cleanup()
         }
 
@@ -336,13 +333,15 @@ extension CentralViewModel: CBPeripheralDelegate {
     /*
      *  This is called when peripheral is ready to accept more data when using write without response
      */
-    func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
-        blueToothLog("Peripheral is ready, send data")
-        writeData()
-    }
+        func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
+            blueToothLog(deviceType: .central, "Peripheral is ready, send data")
+            writeData()
+        }
 
     // writeType이 .withResponse일 때, 블루투스 기기로부터 응답이 왔을때 호출되는 함수
-    func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) { }
+    func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
+        blueToothLog(deviceType: .central, "write value error: \(String(describing: error?.localizedDescription))")
+    }
 
     // 블루투스 기기의 신호 강도를 요청하는 peripheral.readRSSI()가 호출 하는 함수
     //  신호강도와 관련된 코드 작성
