@@ -20,9 +20,9 @@ struct CentralChattingListView: View {
     var body: some View {
         List {
             ForEach(centralUseCase.peripheralList) { peripheral in
-                Button(peripheral.name ?? "알수 없는 기기") {
+                Button(peripheral.name) {
                     self.showConnectAlert = true
-                    self.selectedPeripheral = peripheral
+                    self.selectedPeripheral = peripheral.peripheral
                 }
             }
         }

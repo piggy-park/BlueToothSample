@@ -1,5 +1,5 @@
 //
-//  PeripheralView.swift
+//  PeripheralChattingView.swift
 //  BlueToothSample
 //
 //  Created by gx_piggy on 10/30/23.
@@ -8,14 +8,15 @@
 import SwiftUI
 import CoreBluetooth
 
-struct PeripheralView: View {
-    @StateObject var peripheralUseCase: PeripheralUseCase = .init()
+struct PeripheralChattingView: View {
+    @ObservedObject var peripheralUseCase: PeripheralUseCase
     @State private var textToSend: String = ""
-    @State private var showJoinAlert: Bool = false
-    @State private var showBlueToothAuthAlert: Bool = false
     @State private var chatHistory: [ChattingText] = []
-
     @FocusState private var textfieldFoucs
+
+    init(_ useCase: PeripheralUseCase) {
+        self.peripheralUseCase = useCase
+    }
 
     var body: some View {
         VStack {
@@ -47,16 +48,7 @@ struct PeripheralView: View {
             .padding()
         }
         .padding()
-        .alert("블루투스 권한이 필요합니다", isPresented: $showBlueToothAuthAlert, actions: {
-            Button("취소", role: .cancel) {
-                self.showBlueToothAuthAlert = false
-            }
-            Button("설정") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
-            }
-        })
+
         .onDisappear {
             peripheralUseCase.stop()
         }
@@ -73,16 +65,6 @@ struct PeripheralView: View {
                 chatHistory.append(chat)
             default:
                 break
-            }
-        })
-        .onChange(of: peripheralUseCase.blueToothStatus, perform: { value in
-            switch value {
-            case .allowedAlways:
-                peripheralUseCase.start()
-            case .denied, .restricted:
-                self.showBlueToothAuthAlert = true
-            default:
-                blueToothLog(deviceType: .central, "Unexpected authorization")
             }
         })
     }

@@ -19,7 +19,7 @@ struct SelectBluetoothModeView: View {
                 .padding()
 
                 NavigationLink {
-                    LazyView { PeripheralView() }
+                    LazyView { PeripheralChatSettingView() }
                 } label: {
                     Text("Peripheral")
                 }

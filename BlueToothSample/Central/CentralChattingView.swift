@@ -10,7 +10,7 @@ import CoreBluetooth
 import OSLog
 
 struct CentralChattingView: View {
-    @ObservedObject var centralUseCase\: CentralUseCase
+    @ObservedObject var centralUseCase: CentralUseCase
     @State private var chatHistory: [ChattingText] = []
     @State private var textToSend: String = ""
     @FocusState private var textfieldFoucs
@@ -38,7 +38,7 @@ struct CentralChattingView: View {
                     .focused($textfieldFoucs)
 
                 Button("전송") {
-                    let text = "사람2: \(textToSend)"
+                    let text = "사람 \(Int.random(in: 0...100)): \(textToSend)"
                     centralUseCase.send(text)
                     self.textToSend = ""
                     self.textfieldFoucs = false
@@ -51,6 +51,21 @@ struct CentralChattingView: View {
         })
         .onChange(of: centralUseCase.receivedChatingText, perform: { value in
             chatHistory.append(value)
+        })
+        .onChange(of: centralUseCase.connectStatus, perform: { value in
+            switch value {
+            case .success:
+                let chat = ChattingText(text: "방에 입장했습니다.")
+                chatHistory.append(chat)
+            case .fail:
+                let chat = ChattingText(text: "방에 입장에 실패했습니다.")
+                chatHistory.append(chat)
+            case .disconnected:
+                let chat = ChattingText(text: "연결이 끊어졌습니다.")
+                chatHistory.append(chat)
+            default:
+                break
+            }
         })
     }
 }

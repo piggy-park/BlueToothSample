@@ -27,6 +27,7 @@ final class PeripheralUseCase: NSObject, ObservableObject {
     private var sendDataIndex: Int = 0
     private var sendText: String = ""
     private var sendingEOM = false
+    private let roomName: String = ""
 
     override init() {
         super.init()
@@ -37,9 +38,11 @@ final class PeripheralUseCase: NSObject, ObservableObject {
         peripheralManager = CBPeripheralManager(delegate: self, queue: nil, options: [CBPeripheralManagerOptionShowPowerAlertKey: true])
     }
 
-    func start() {
+    func start(roomName: String) {
         blueToothLog(deviceType: .periphearl, "start advertising")
-        peripheralManager?.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [BlueToothInfo.serviceUUID]])
+
+        peripheralManager?.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [BlueToothInfo.serviceUUID], 
+                                                CBAdvertisementDataLocalNameKey: roomName]) // 채팅방 이름
     }
 
     func stop() {
@@ -54,6 +57,7 @@ final class PeripheralUseCase: NSObject, ObservableObject {
     private func sendData() {
         guard let transferCharacteristic = transferCharacteristic,
               let peripheralManager = peripheralManager else { return }
+
         // 보낼 마지막 메세지(EOM) 여부 Flag확인
         if sendingEOM {
             let didSend = peripheralManager.updateValue("EOM".data(using: .utf8)!, for: transferCharacteristic, onSubscribedCentrals: nil)
@@ -154,7 +158,7 @@ extension PeripheralUseCase: CBPeripheralManagerDelegate {
         case .poweredOn:
             blueToothLog(deviceType: .periphearl, "CBManager is powered on")
             setupPeripheral()
-            start()
+//            start(roomName: roomName)
         case .poweredOff:
             blueToothLog(deviceType: .periphearl, "CBManager is not powered on")
             stop()

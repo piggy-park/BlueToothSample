@@ -23,7 +23,7 @@ enum ChatStatus {
 }
 
 final class CentralUseCase: NSObject, ObservableObject {
-    @Published var peripheralList: [CBPeripheral] = []
+    @Published var peripheralList: [PeripheralWithName] = []
     @Published var blueToothStatus: CBManagerAuthorization = .notDetermined
     @Published var receivedChatingText: ChattingText = .init(text: "")
     @Published var connectStatus: CentralConnectStatus = .none
@@ -60,7 +60,7 @@ final class CentralUseCase: NSObject, ObservableObject {
         let connectedPeripherals: [CBPeripheral] = centralManager.retrieveConnectedPeripherals(withServices: [BlueToothInfo.serviceUUID])
         blueToothLog(deviceType: .central, "Found connected Peripherals with transfer service:\(connectedPeripherals)")
 
-        peripheralList = connectedPeripherals
+//        peripheralList = connectedPeripherals
         // scan 시작
         // centralManager(_:didDiscover:advertisementData:rssi:) call
         blueToothLog(deviceType: .central,"Scanning start")
@@ -178,9 +178,11 @@ extension CentralUseCase: CBCentralManagerDelegate {
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
                         advertisementData: [String: Any], rssi RSSI: NSNumber) {
         blueToothLog(deviceType: .central, "Discovered \(String(describing: peripheral.name)) at \(RSSI.intValue)")
+        let name = (advertisementData[CBAdvertisementDataLocalNameKey] as? String) ?? "알수 없음"
+        let peripheralWithName = PeripheralWithName(name: name, peripheral: peripheral)
         // 서치된 peripheral들이 list에 없던 놈이라면 추가
-        if !peripheralList.contains(peripheral) {
-            peripheralList.append(peripheral)
+        if !peripheralList.contains(where: { $0 == peripheralWithName }) {
+            peripheralList.append(peripheralWithName)
         }
     }
 
@@ -346,3 +348,11 @@ extension CentralUseCase: CBPeripheralDelegate {
 
 extension CBPeripheral: Identifiable { }
 
+struct PeripheralWithName: Equatable, Identifiable {
+    var id: String {
+        "\(name) \(peripheral.identifier)"
+    }
+
+    let name: String
+    let peripheral: CBPeripheral
+}
