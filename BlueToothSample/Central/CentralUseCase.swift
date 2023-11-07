@@ -9,19 +9,35 @@ import CoreBluetooth
 import Combine
 import OSLog
 
-final class CentralManager: NSObject, ObservableObject {
+enum CentralConnectStatus {
+    case none
+    case success
+    case fail
+    case disconnected
+}
+
+enum ChatStatus {
+    case none
+    case failToSend
+    case successToSend
+}
+
+final class CentralUseCase: NSObject, ObservableObject {
     @Published var peripheralList: [CBPeripheral] = []
     @Published var blueToothStatus: CBManagerAuthorization = .notDetermined
     @Published var receivedChatingText: ChattingText = .init(text: "")
-    var centralManager: CBCentralManager?
+    @Published var connectStatus: CentralConnectStatus = .none
+    @Published var chatStatus: ChatStatus = .none
 
-    var discoveredPeripheral: CBPeripheral?
-    var transferCharacteristic: CBCharacteristic?
-    var receivedData = Data()
-    var dataToSend = Data()
-    var sendDataIndex: Int = 0
+    private var centralManager: CBCentralManager?
+
+    private var discoveredPeripheral: CBPeripheral?
+    private var transferCharacteristic: CBCharacteristic?
+    private var receivedData = Data()
+    private var dataToSend = Data()
+    private var sendDataIndex: Int = 0
     private var writeType: CBCharacteristicWriteType = .withoutResponse
-    var sendingEOM = false
+    private var sendingEOM = false
 
     override init() {
         super.init()
@@ -132,7 +148,7 @@ final class CentralManager: NSObject, ObservableObject {
     }
 }
 
-extension CentralManager: CBCentralManagerDelegate {
+extension CentralUseCase: CBCentralManagerDelegate {
 
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch central.state {
@@ -172,6 +188,7 @@ extension CentralManager: CBCentralManagerDelegate {
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         blueToothLog(deviceType: .central, "Failed to connect to \(peripheral). \(String(describing: error))")
         cleanup()
+        self.connectStatus = .fail
     }
 
     /*
@@ -180,18 +197,13 @@ extension CentralManager: CBCentralManagerDelegate {
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         blueToothLog(deviceType: .central, "Peripheral Connected")
 
-        // Stop scanning
         centralManager?.stopScan()
         blueToothLog(deviceType: .central, "Scanning stopped")
-
-        // Clear the data that we may already have
         receivedData.removeAll(keepingCapacity: false)
-
-        // Make sure we get the discovery callbacks
         peripheral.delegate = self
-
-        // Search only for services that match our UUID
         peripheral.discoverServices([BlueToothInfo.serviceUUID])
+
+        self.connectStatus = .success
     }
 
     /*
@@ -203,10 +215,11 @@ extension CentralManager: CBCentralManagerDelegate {
 
         // We're disconnected, so start scanning again
         retrievePeripheral()
+        self.connectStatus = .disconnected
     }
 }
 
-extension CentralManager: CBPeripheralDelegate {
+extension CentralUseCase: CBPeripheralDelegate {
 
     /*
      *  The peripheral letting us know when services have been invalidated.
@@ -269,6 +282,7 @@ extension CentralManager: CBPeripheralDelegate {
         if let error = error {
             blueToothLog(deviceType: .central, "Error discovering characteristics: \(error.localizedDescription)")
             cleanup()
+            self.chatStatus = .failToSend
             return
         }
 
@@ -282,6 +296,7 @@ extension CentralManager: CBPeripheralDelegate {
             let text = String(data: self.receivedData, encoding: .utf8) ?? ""
             self.receivedChatingText = ChattingText(text: text)
             self.receivedData.removeAll()
+            self.chatStatus = .successToSend
         } else {
             // Otherwise, just append the data to what we have previously received.
             receivedData.append(characteristicData)
@@ -330,3 +345,4 @@ extension CentralManager: CBPeripheralDelegate {
 }
 
 extension CBPeripheral: Identifiable { }
+

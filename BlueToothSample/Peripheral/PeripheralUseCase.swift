@@ -8,16 +8,24 @@
 import OSLog
 import CoreBluetooth
 
-final class PeripheralViewModel: NSObject, ObservableObject {
+enum PeripheralConnectStatus {
+    case none
+    case success
+    case fail
+    case disconnected
+}
+
+final class PeripheralUseCase: NSObject, ObservableObject {
     @Published var blueToothStatus: CBManagerAuthorization = .notDetermined
     @Published var sentText: ChattingText = .init(text: "")
+    @Published var peripheralConnectStatus: PeripheralConnectStatus = .none
 
     private var peripheralManager: CBPeripheralManager?
-    var transferCharacteristic: CBMutableCharacteristic?
-    var connectedCentral: CBCentral?
-    var dataToSend = Data()
-    var sendDataIndex: Int = 0
-    var sendText: String = ""
+    private var transferCharacteristic: CBMutableCharacteristic?
+    private var connectedCentral: CBCentral?
+    private var dataToSend = Data()
+    private var sendDataIndex: Int = 0
+    private var sendText: String = ""
     private var sendingEOM = false
 
     override init() {
@@ -139,7 +147,7 @@ final class PeripheralViewModel: NSObject, ObservableObject {
     }
 }
 
-extension PeripheralViewModel: CBPeripheralManagerDelegate {
+extension PeripheralUseCase: CBPeripheralManagerDelegate {
     func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
 
         switch peripheral.state {
@@ -170,6 +178,7 @@ extension PeripheralViewModel: CBPeripheralManagerDelegate {
         blueToothLog(deviceType: .periphearl, "Central subscribed to characteristic")
         // save central
         connectedCentral = central
+        self.peripheralConnectStatus = .success
     }
 
     /*
@@ -178,6 +187,7 @@ extension PeripheralViewModel: CBPeripheralManagerDelegate {
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
         blueToothLog(deviceType: .periphearl, "Central unsubscribed from characteristic")
         connectedCentral = nil
+        self.peripheralConnectStatus = .disconnected
     }
 
     //  현재 큐에 자리가 없어서 전송에 실패했을 경우, 준비가 되면 그때 다시 send함.

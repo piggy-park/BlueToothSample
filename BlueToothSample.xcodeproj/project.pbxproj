@@ -8,15 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		E40996802AEF684B001E552C /* BlueToothSampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E409967F2AEF684B001E552C /* BlueToothSampleApp.swift */; };
-		E40996822AEF684B001E552C /* SelectBlutoothModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E40996812AEF684B001E552C /* SelectBlutoothModeView.swift */; };
+		E40996822AEF684B001E552C /* SelectBluetoothModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E40996812AEF684B001E552C /* SelectBluetoothModeView.swift */; };
 		E40996842AEF684C001E552C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E40996832AEF684C001E552C /* Assets.xcassets */; };
 		E40996872AEF684C001E552C /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E40996862AEF684C001E552C /* Preview Assets.xcassets */; };
 		E409968E2AEF6A60001E552C /* CentralChattingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E409968D2AEF6A60001E552C /* CentralChattingView.swift */; };
 		E40996902AEF6A67001E552C /* PeripheralView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E409968F2AEF6A67001E552C /* PeripheralView.swift */; };
 		E40996922AEF7E17001E552C /* BlueToothInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E40996912AEF7E17001E552C /* BlueToothInfo.swift */; };
-		E40996942AEF9E8F001E552C /* CentralManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E40996932AEF9E8F001E552C /* CentralManager.swift */; };
-		E43F4CA72AF4AE82009423EA /* PeripheralViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E43F4CA62AF4AE82009423EA /* PeripheralViewModel.swift */; };
+		E40996942AEF9E8F001E552C /* CentralUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = E40996932AEF9E8F001E552C /* CentralUseCase.swift */; };
+		E43F4CA72AF4AE82009423EA /* PeripheralUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = E43F4CA62AF4AE82009423EA /* PeripheralUseCase.swift */; };
 		E43F4CB12AF8BD6A009423EA /* LazyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E43F4CB02AF8BD6A009423EA /* LazyView.swift */; };
+		E43F4CB32AFA255F009423EA /* CentralChattingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E43F4CB22AFA255F009423EA /* CentralChattingListView.swift */; };
 		E43F92CB2AF2282C00CEB724 /* BlueToothSampleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E43F92CA2AF2282C00CEB724 /* BlueToothSampleTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -33,15 +34,16 @@
 /* Begin PBXFileReference section */
 		E409967C2AEF684B001E552C /* BlueToothSample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BlueToothSample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E409967F2AEF684B001E552C /* BlueToothSampleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlueToothSampleApp.swift; sourceTree = "<group>"; };
-		E40996812AEF684B001E552C /* SelectBlutoothModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectBlutoothModeView.swift; sourceTree = "<group>"; };
+		E40996812AEF684B001E552C /* SelectBluetoothModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectBluetoothModeView.swift; sourceTree = "<group>"; };
 		E40996832AEF684C001E552C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E40996862AEF684C001E552C /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		E409968D2AEF6A60001E552C /* CentralChattingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CentralChattingView.swift; sourceTree = "<group>"; };
 		E409968F2AEF6A67001E552C /* PeripheralView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralView.swift; sourceTree = "<group>"; };
 		E40996912AEF7E17001E552C /* BlueToothInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlueToothInfo.swift; sourceTree = "<group>"; };
-		E40996932AEF9E8F001E552C /* CentralManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CentralManager.swift; sourceTree = "<group>"; };
-		E43F4CA62AF4AE82009423EA /* PeripheralViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralViewModel.swift; sourceTree = "<group>"; };
+		E40996932AEF9E8F001E552C /* CentralUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CentralUseCase.swift; sourceTree = "<group>"; };
+		E43F4CA62AF4AE82009423EA /* PeripheralUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralUseCase.swift; sourceTree = "<group>"; };
 		E43F4CB02AF8BD6A009423EA /* LazyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LazyView.swift; sourceTree = "<group>"; };
+		E43F4CB22AFA255F009423EA /* CentralChattingListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CentralChattingListView.swift; sourceTree = "<group>"; };
 		E43F92C82AF2282C00CEB724 /* BlueToothSampleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BlueToothSampleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E43F92CA2AF2282C00CEB724 /* BlueToothSampleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlueToothSampleTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -86,11 +88,9 @@
 			isa = PBXGroup;
 			children = (
 				E409967F2AEF684B001E552C /* BlueToothSampleApp.swift */,
-				E40996812AEF684B001E552C /* SelectBlutoothModeView.swift */,
-				E409968D2AEF6A60001E552C /* CentralChattingView.swift */,
-				E40996932AEF9E8F001E552C /* CentralManager.swift */,
-				E409968F2AEF6A67001E552C /* PeripheralView.swift */,
-				E43F4CA62AF4AE82009423EA /* PeripheralViewModel.swift */,
+				E40996812AEF684B001E552C /* SelectBluetoothModeView.swift */,
+				E43F4CB42AFA259A009423EA /* Central */,
+				E43F4CB52AFA25A3009423EA /* Peripheral */,
 				E40996912AEF7E17001E552C /* BlueToothInfo.swift */,
 				E43F4CB02AF8BD6A009423EA /* LazyView.swift */,
 				E40996832AEF684C001E552C /* Assets.xcassets */,
@@ -105,6 +105,25 @@
 				E40996862AEF684C001E552C /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		E43F4CB42AFA259A009423EA /* Central */ = {
+			isa = PBXGroup;
+			children = (
+				E409968D2AEF6A60001E552C /* CentralChattingView.swift */,
+				E43F4CB22AFA255F009423EA /* CentralChattingListView.swift */,
+				E40996932AEF9E8F001E552C /* CentralUseCase.swift */,
+			);
+			path = Central;
+			sourceTree = "<group>";
+		};
+		E43F4CB52AFA25A3009423EA /* Peripheral */ = {
+			isa = PBXGroup;
+			children = (
+				E409968F2AEF6A67001E552C /* PeripheralView.swift */,
+				E43F4CA62AF4AE82009423EA /* PeripheralUseCase.swift */,
+			);
+			path = Peripheral;
 			sourceTree = "<group>";
 		};
 		E43F92C92AF2282C00CEB724 /* BlueToothSampleTests */ = {
@@ -215,13 +234,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E43F4CB32AFA255F009423EA /* CentralChattingListView.swift in Sources */,
 				E409968E2AEF6A60001E552C /* CentralChattingView.swift in Sources */,
 				E40996922AEF7E17001E552C /* BlueToothInfo.swift in Sources */,
-				E40996822AEF684B001E552C /* SelectBlutoothModeView.swift in Sources */,
-				E43F4CA72AF4AE82009423EA /* PeripheralViewModel.swift in Sources */,
+				E40996822AEF684B001E552C /* SelectBluetoothModeView.swift in Sources */,
+				E43F4CA72AF4AE82009423EA /* PeripheralUseCase.swift in Sources */,
 				E43F4CB12AF8BD6A009423EA /* LazyView.swift in Sources */,
 				E40996902AEF6A67001E552C /* PeripheralView.swift in Sources */,
-				E40996942AEF9E8F001E552C /* CentralManager.swift in Sources */,
+				E40996942AEF9E8F001E552C /* CentralUseCase.swift in Sources */,
 				E40996802AEF684B001E552C /* BlueToothSampleApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

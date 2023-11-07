@@ -9,19 +9,24 @@ import SwiftUI
 import CoreBluetooth
 
 struct PeripheralView: View {
-    @ObservedObject var viewModel: PeripheralViewModel = .init()
+    @StateObject var peripheralUseCase: PeripheralUseCase = .init()
     @State private var textToSend: String = ""
     @State private var showJoinAlert: Bool = false
     @State private var showBlueToothAuthAlert: Bool = false
     @State private var chatHistory: [ChattingText] = []
+
     @FocusState private var textfieldFoucs
 
     var body: some View {
         VStack {
-            Text("Periphearl View")
             List {
-                ForEach(chatHistory) {
-                    Text($0.text)
+                ForEach(chatHistory) { chat in
+                    HStack {
+                        Text(chat.text)
+                        Spacer()
+                        Text(Date(), style: .time)
+                    }
+                    .listRowSeparator(.hidden)
                 }
             }
             .listStyle(.plain)
@@ -34,7 +39,7 @@ struct PeripheralView: View {
 
                 Button("send text") {
                     let text = "사람1: \(textToSend)"
-                    viewModel.send(text)
+                    peripheralUseCase.send(text)
                     self.textToSend = ""
                     self.textfieldFoucs = false
                 }
@@ -53,15 +58,27 @@ struct PeripheralView: View {
             }
         })
         .onDisappear {
-            viewModel.stop()
+            peripheralUseCase.stop()
         }
-        .onChange(of: viewModel.sentText, perform: {
+        .onChange(of: peripheralUseCase.sentText, perform: {
             chatHistory.append($0)
         })
-        .onChange(of: viewModel.blueToothStatus, perform: { value in
+        .onChange(of: peripheralUseCase.peripheralConnectStatus, perform: { value in
+            switch value {
+            case .success:
+                let chat = ChattingText(text: "유저가 방을 들어왔습니다.")
+                chatHistory.append(chat)
+            case .disconnected:
+                let chat = ChattingText(text: "유저가 방을 떠났습니다.")
+                chatHistory.append(chat)
+            default:
+                break
+            }
+        })
+        .onChange(of: peripheralUseCase.blueToothStatus, perform: { value in
             switch value {
             case .allowedAlways:
-                viewModel.start()
+                peripheralUseCase.start()
             case .denied, .restricted:
                 self.showBlueToothAuthAlert = true
             default:

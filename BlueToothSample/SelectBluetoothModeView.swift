@@ -7,12 +7,12 @@
 
 import SwiftUI
 
-struct SelectBlutoothModeView: View {
+struct SelectBluetoothModeView: View {
     var body: some View {
         NavigationView {
             VStack {
                 NavigationLink {
-                    LazyView { ChattingListView() }
+                    LazyView { CentralChattingListView() }
                 } label: {
                     Text("Central")
                 }
