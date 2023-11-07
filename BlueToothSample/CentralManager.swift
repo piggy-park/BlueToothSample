@@ -9,7 +9,7 @@ import CoreBluetooth
 import Combine
 import OSLog
 
-final class CentralViewModel: NSObject, ObservableObject {
+final class CentralManager: NSObject, ObservableObject {
     @Published var peripheralList: [CBPeripheral] = []
     @Published var blueToothStatus: CBManagerAuthorization = .notDetermined
     @Published var receivedChatingText: ChattingText = .init(text: "")
@@ -17,7 +17,6 @@ final class CentralViewModel: NSObject, ObservableObject {
 
     var discoveredPeripheral: CBPeripheral?
     var transferCharacteristic: CBCharacteristic?
-    var writeCharacteristic: CBCharacteristic?
     var receivedData = Data()
     var dataToSend = Data()
     var sendDataIndex: Int = 0
@@ -33,26 +32,25 @@ final class CentralViewModel: NSObject, ObservableObject {
         self.centralManager = .init(delegate: self, queue: nil, options: [CBCentralManagerOptionShowPowerAlertKey: true])
     }
 
+    func connect(_ peripheral: CBPeripheral) {
+        centralManager?.connect(peripheral, options: nil)
+        discoveredPeripheral = peripheral
+        blueToothLog(deviceType: .central, "Connecting to perhiperal \(peripheral)")
+    }
+
     private func retrievePeripheral() {
         guard let centralManager =  centralManager else { return }
         // 기존에 이미 연결된 Peripheral의 service들 확인
         let connectedPeripherals: [CBPeripheral] = centralManager.retrieveConnectedPeripherals(withServices: [BlueToothInfo.serviceUUID])
-
         blueToothLog(deviceType: .central, "Found connected Peripherals with transfer service:\(connectedPeripherals)")
 
-        if let connectedPeripheral = connectedPeripherals.last {
-            blueToothLog(deviceType: .central, "Connecting to peripheral\(connectedPeripheral)")
-            self.discoveredPeripheral = connectedPeripheral
-            centralManager.connect(connectedPeripheral, options: nil)
+        peripheralList = connectedPeripherals
+        // scan 시작
+        // centralManager(_:didDiscover:advertisementData:rssi:) call
+        blueToothLog(deviceType: .central,"Scanning start")
+        centralManager.scanForPeripherals(withServices: [BlueToothInfo.serviceUUID],
+                                          options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
 
-            peripheralList.append(connectedPeripheral)
-
-        } else {
-            // 만약 찾지 못했다면 scan 시작
-            blueToothLog(deviceType: .central,"Scanning start")
-            centralManager.scanForPeripherals(withServices: [BlueToothInfo.serviceUUID],
-                                              options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
-        }
     }
 
     func stop() {
@@ -102,8 +100,6 @@ final class CentralViewModel: NSObject, ObservableObject {
 
         if sendingEOM {
             discoveredPeripheral.writeValue("EOM".data(using: .utf8)!, for: transferCharacteristic, type: writeType)
-            //            let text = String(data: self.receivedData, encoding: .utf8) ?? ""
-            //            self.receivedChatingText = ChattingText(text: text)
             blueToothLog(deviceType: .central, "Sent: EOM")
             sendingEOM = false
             return
@@ -128,15 +124,15 @@ final class CentralViewModel: NSObject, ObservableObject {
             sendDataIndex += amountToSend
             if sendDataIndex >= dataToSend.count {
                 discoveredPeripheral.writeValue("EOM".data(using: .utf8)!, for: transferCharacteristic, type: writeType)
+                self.sendingEOM = true
                 blueToothLog(deviceType: .central, "Sent: EOM")
-                self.sendingEOM = false
                 return
             }
         }
     }
 }
 
-extension CentralViewModel: CBCentralManagerDelegate {
+extension CentralManager: CBCentralManagerDelegate {
 
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch central.state {
@@ -165,25 +161,10 @@ extension CentralViewModel: CBCentralManagerDelegate {
      */
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
                         advertisementData: [String: Any], rssi RSSI: NSNumber) {
-
-        // Reject if the signal strength is too low to attempt data transfer.
-        // Change the minimum RSSI value depending on your app’s use case.
-        guard RSSI.doubleValue >= -50
-        else {
-            blueToothLog(deviceType: .central, "Discovered perhiperal not in expected range, at \(RSSI.intValue)", RSSI.intValue)
-            return
-        }
         blueToothLog(deviceType: .central, "Discovered \(String(describing: peripheral.name)) at \(RSSI.intValue)")
-
-        // Device is in range - have we already seen it?
-        if discoveredPeripheral != peripheral {
-
-            // Save a local copy of the peripheral, so CoreBluetooth doesn't get rid of it.
-            discoveredPeripheral = peripheral
-
-            // And finally, connect to the peripheral.
-            blueToothLog(deviceType: .central, "Connecting to perhiperal \(peripheral)")
-            centralManager?.connect(peripheral, options: nil)
+        // 서치된 peripheral들이 list에 없던 놈이라면 추가
+        if !peripheralList.contains(peripheral) {
+            peripheralList.append(peripheral)
         }
     }
 
@@ -225,7 +206,7 @@ extension CentralViewModel: CBCentralManagerDelegate {
     }
 }
 
-extension CentralViewModel: CBPeripheralDelegate {
+extension CentralManager: CBPeripheralDelegate {
 
     /*
      *  The peripheral letting us know when services have been invalidated.

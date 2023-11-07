@@ -12,7 +12,7 @@ struct SelectBlutoothModeView: View {
         NavigationView {
             VStack {
                 NavigationLink {
-                    LazyView { CentralView() }
+                    LazyView { ChattingListView() }
                 } label: {
                     Text("Central")
                 }
