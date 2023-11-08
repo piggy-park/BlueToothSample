@@ -57,8 +57,8 @@ struct PeripheralChattingView: View {
         })
         .onChange(of: peripheralUseCase.peripheralConnectStatus, perform: { value in
             switch value {
-            case .disconnected:
-                let chat = ChattingText(text: "유저가 방을 떠났습니다.")
+            case .disconnected(let userName):
+                let chat = ChattingText(text: "\(userName)님이 방을 떠났습니다.")
                 chatHistory.append(chat)
             default:
                 break

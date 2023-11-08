@@ -14,14 +14,14 @@ struct SelectBluetoothModeView: View {
                 NavigationLink {
                     LazyView { CentralChattingListView() }
                 } label: {
-                    Text("Central")
+                    Text("방 찾기")
                 }
                 .padding()
 
                 NavigationLink {
                     LazyView { PeripheralChatSettingView() }
                 } label: {
-                    Text("Peripheral")
+                    Text("방 만들기")
                 }
                 .padding()
             }

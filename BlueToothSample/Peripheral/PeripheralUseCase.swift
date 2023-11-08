@@ -12,14 +12,17 @@ enum PeripheralConnectStatus {
     case none
     case success
     case fail
-    case disconnected
+    case disconnected(userName: String)
 }
+
+extension PeripheralConnectStatus: Equatable { }
 
 final class PeripheralUseCase: NSObject, ObservableObject {
     @Published var blueToothStatus: CBManagerAuthorization = .notDetermined
     @Published var sentText: ChattingText = .init(text: "")
     @Published var peripheralConnectStatus: PeripheralConnectStatus = .none
 
+    private var connectedUserDic: [CBCentral: String] = [:]
     private var peripheralManager: CBPeripheralManager?
     private var transferCharacteristic: CBMutableCharacteristic?
     private var connectedCentral: CBCentral?
@@ -41,7 +44,7 @@ final class PeripheralUseCase: NSObject, ObservableObject {
     func start(roomName: String) {
         blueToothLog(deviceType: .periphearl, "start advertising \(roomName)")
 
-        peripheralManager?.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [BlueToothInfo.serviceUUID], 
+        peripheralManager?.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [BlueToothInfo.serviceUUID],
                                                 CBAdvertisementDataLocalNameKey: roomName]) // 채팅방 이름
     }
 
@@ -109,7 +112,7 @@ final class PeripheralUseCase: NSObject, ObservableObject {
 
                 // EOM Send it
                 let eomSent = peripheralManager.updateValue("EOM".data(using: .utf8)!,
-                                                             for: transferCharacteristic, onSubscribedCentrals: nil)
+                                                            for: transferCharacteristic, onSubscribedCentrals: nil)
                 // 성공시
                 if eomSent {
                     self.sentText = .init(text: sendText)
@@ -134,8 +137,8 @@ final class PeripheralUseCase: NSObject, ObservableObject {
         // Start with the CBMutableCharacteristic.
         let transferCharacteristic = CBMutableCharacteristic(type: BlueToothInfo.characteristicUUID,
                                                              properties: [.writeWithoutResponse, .notify],
-                                                         value: nil,
-                                                         permissions: [.readable, .writeable])
+                                                             value: nil,
+                                                             permissions: [.readable, .writeable])
 
         // Create a service from the characteristic.
         let transferService = CBMutableService(type: BlueToothInfo.serviceUUID, primary: true)
@@ -158,7 +161,6 @@ extension PeripheralUseCase: CBPeripheralManagerDelegate {
         case .poweredOn:
             blueToothLog(deviceType: .periphearl, "CBManager is powered on")
             setupPeripheral()
-//            start(roomName: roomName)
         case .poweredOff:
             blueToothLog(deviceType: .periphearl, "CBManager is not powered on")
             stop()
@@ -191,7 +193,9 @@ extension PeripheralUseCase: CBPeripheralManagerDelegate {
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
         blueToothLog(deviceType: .periphearl, "Central unsubscribed from characteristic")
         connectedCentral = nil
-        self.peripheralConnectStatus = .disconnected
+        let unsubscribedUserName = connectedUserDic[central]
+        connectedUserDic.removeValue(forKey: central)
+        self.peripheralConnectStatus = .disconnected(userName: unsubscribedUserName ?? "")
     }
 
     //  현재 큐에 자리가 없어서 전송에 실패했을 경우, 준비가 되면 그때 다시 send함.
@@ -205,11 +209,14 @@ extension PeripheralUseCase: CBPeripheralManagerDelegate {
 
         for aRequest in requests {
             guard let requestValue = aRequest.value,
-                let stringFromData = String(data: requestValue, encoding: .utf8) else {
-                    continue
-            }
-            blueToothLog(deviceType: .periphearl, "Received write request of \(requestValue.count) bytes: \(stringFromData)")
+                  let stringFromData = String(data: requestValue, encoding: .utf8),
+                  let userName = stringFromData.split(separator: "님").first else { continue }
             if stringFromData != "EOM" {
+                let central = aRequest.central
+                connectedUserDic[central] = String(userName)
+
+                blueToothLog(deviceType: .periphearl, "Received write request of \(requestValue.count) bytes: \(stringFromData) from \(userName)")
+
                 send(stringFromData)
             }
         }
