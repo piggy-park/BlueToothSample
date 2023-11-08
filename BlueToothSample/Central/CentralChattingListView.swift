@@ -16,13 +16,22 @@ struct CentralChattingListView: View {
     @State private var selectedPeripheral: CBPeripheral?
     @State private var showBlueToothAuthAlert: Bool = false
     @State private var goToChattingRoom: Bool = false
+    @State private var inputUserName: String = "유저 \(Int.random(in: 0...100))"
 
     var body: some View {
-        List {
-            ForEach(centralUseCase.peripheralList) { peripheral in
-                Button(peripheral.name) {
-                    self.showConnectAlert = true
-                    self.selectedPeripheral = peripheral.peripheral
+        VStack {
+            HStack {
+                Text("닉네임 :")
+                TextField("유저 이름을 입력해주세요", text: $inputUserName)
+                    .textFieldStyle(.roundedBorder)
+            }.padding()
+
+            List {
+                ForEach(centralUseCase.peripheralList) { peripheral in
+                    Button(peripheral.name) {
+                        self.showConnectAlert = true
+                        self.selectedPeripheral = peripheral.peripheral
+                    }
                 }
             }
         }
@@ -33,13 +42,12 @@ struct CentralChattingListView: View {
         .background {
             NavigationLink(isActive: $goToChattingRoom) {
                 LazyView {
-                    CentralChattingView(centralUseCase)
-                    // TODO: 연결 안되면 에러처리
-                        .onAppear {
-                            if let selectedPeripheral {
-                                centralUseCase.connect(selectedPeripheral)
-                            }
+                    CentralChattingView(centralUseCase, userName: inputUserName)
+                    .onAppear {
+                        if let selectedPeripheral {
+                            centralUseCase.connect(selectedPeripheral)
                         }
+                    }
                 }
             } label: {
                 EmptyView()

@@ -39,7 +39,7 @@ final class PeripheralUseCase: NSObject, ObservableObject {
     }
 
     func start(roomName: String) {
-        blueToothLog(deviceType: .periphearl, "start advertising")
+        blueToothLog(deviceType: .periphearl, "start advertising \(roomName)")
 
         peripheralManager?.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [BlueToothInfo.serviceUUID], 
                                                 CBAdvertisementDataLocalNameKey: roomName]) // 채팅방 이름

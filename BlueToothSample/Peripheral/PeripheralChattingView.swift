@@ -33,13 +33,13 @@ struct PeripheralChattingView: View {
             .listStyle(.plain)
 
             HStack {
-                TextField("input text", text: $textToSend)
+                TextField("", text: $textToSend)
                     .textFieldStyle(.roundedBorder)
                     .focused($textfieldFoucs)
                     .padding()
 
-                Button("send text") {
-                    let text = "사람1: \(textToSend)"
+                Button("전송") {
+                    let text = "방장: \(textToSend)"
                     peripheralUseCase.send(text)
                     self.textToSend = ""
                     self.textfieldFoucs = false
@@ -57,9 +57,6 @@ struct PeripheralChattingView: View {
         })
         .onChange(of: peripheralUseCase.peripheralConnectStatus, perform: { value in
             switch value {
-            case .success:
-                let chat = ChattingText(text: "유저가 방을 들어왔습니다.")
-                chatHistory.append(chat)
             case .disconnected:
                 let chat = ChattingText(text: "유저가 방을 떠났습니다.")
                 chatHistory.append(chat)

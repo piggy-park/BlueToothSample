@@ -14,9 +14,11 @@ struct CentralChattingView: View {
     @State private var chatHistory: [ChattingText] = []
     @State private var textToSend: String = ""
     @FocusState private var textfieldFoucs
+    private let userName: String
 
-    init(_ useCase: CentralUseCase) {
+    init(_ useCase: CentralUseCase, userName: String) {
         self.centralUseCase = useCase
+        self.userName = userName
     }
 
     var body: some View {
@@ -38,7 +40,7 @@ struct CentralChattingView: View {
                     .focused($textfieldFoucs)
 
                 Button("전송") {
-                    let text = "사람 \(Int.random(in: 0...100)): \(textToSend)"
+                    let text = "\(userName): \(textToSend)"
                     centralUseCase.send(text)
                     self.textToSend = ""
                     self.textfieldFoucs = false
@@ -55,12 +57,16 @@ struct CentralChattingView: View {
         .onChange(of: centralUseCase.connectStatus, perform: { value in
             switch value {
             case .success:
-                let chat = ChattingText(text: "방에 입장했습니다.")
-                chatHistory.append(chat)
+                blueToothLog(deviceType: .central, "연결 성공")
+            case .subscribe:
+                blueToothLog(deviceType: .central, "채팅 시작")
+                centralUseCase.send("\(userName)님이 방에 입장했습니다.")
             case .fail:
-                let chat = ChattingText(text: "방에 입장에 실패했습니다.")
+                blueToothLog(deviceType: .central, "방 입장에 실패했습니다.")
+                let chat = ChattingText(text: "방 입장에 실패했습니다.")
                 chatHistory.append(chat)
             case .disconnected:
+                blueToothLog(deviceType: .central, "연결이 끊여졌습니다.")
                 let chat = ChattingText(text: "연결이 끊어졌습니다.")
                 chatHistory.append(chat)
             default:

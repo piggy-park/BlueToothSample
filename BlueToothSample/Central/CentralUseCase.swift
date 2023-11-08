@@ -14,6 +14,7 @@ enum CentralConnectStatus {
     case success
     case fail
     case disconnected
+    case subscribe
 }
 
 enum ChatStatus {
@@ -57,15 +58,15 @@ final class CentralUseCase: NSObject, ObservableObject {
     private func retrievePeripheral() {
         guard let centralManager =  centralManager else { return }
         // 기존에 이미 연결된 Peripheral의 service들 확인
+        // 현재는 사용하지 않고 처음부터 다시 검색함(방이름을 바꿀수 있기 때문)
         let connectedPeripherals: [CBPeripheral] = centralManager.retrieveConnectedPeripherals(withServices: [BlueToothInfo.serviceUUID])
         blueToothLog(deviceType: .central, "Found connected Peripherals with transfer service:\(connectedPeripherals)")
 
-//        peripheralList = connectedPeripherals
         // scan 시작
         // centralManager(_:didDiscover:advertisementData:rssi:) call
         blueToothLog(deviceType: .central,"Scanning start")
         centralManager.scanForPeripherals(withServices: [BlueToothInfo.serviceUUID],
-                                          options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
+                                          options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
 
     }
 
@@ -178,10 +179,23 @@ extension CentralUseCase: CBCentralManagerDelegate {
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
                         advertisementData: [String: Any], rssi RSSI: NSNumber) {
         blueToothLog(deviceType: .central, "Discovered \(String(describing: peripheral.name)) at \(RSSI.intValue)")
-        let name = (advertisementData[CBAdvertisementDataLocalNameKey] as? String) ?? "알수 없음"
-        let peripheralWithName = PeripheralWithName(name: name, peripheral: peripheral)
+
+        // 핸드폰 기종에 따라 이름이 들어오는 파라미터가 다름.
+        // Ex) se2 = name, iPhoneMini 12: CBAdvertisementDataLocalNameKey
+        // advertisingName먼저 검색 후 없으면 peripheralName
+        let advertisingName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
+        let peripheralName = peripheral.name
+        var displayName = ""
+
+        if advertisingName == nil && peripheralName != nil {
+            displayName = peripheralName!
+        } else {
+            displayName = advertisingName ?? "알 수 없는 방"
+        }
+
+        let peripheralWithName = PeripheralWithName(name: displayName, peripheral: peripheral)
         // 서치된 peripheral들이 list에 없던 놈이라면 추가
-        if !peripheralList.contains(where: { $0 == peripheralWithName }) {
+        if !peripheralList.contains(where: { $0.peripheral.identifier == peripheralWithName.peripheral.identifier }) {
             peripheralList.append(peripheralWithName)
         }
     }
@@ -272,7 +286,7 @@ extension CentralUseCase: CBPeripheralDelegate {
             transferCharacteristic = characteristic
             peripheral.setNotifyValue(true, for: characteristic)
         }
-
+        self.connectStatus = .subscribe
         // Once this is complete, we just need to wait for the data to come in.
     }
 
