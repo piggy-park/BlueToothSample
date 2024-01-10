@@ -25,7 +25,7 @@ final class PeripheralUseCase: NSObject, ObservableObject {
     private var connectedUserDic: [CBCentral: String] = [:]
     private var peripheralManager: CBPeripheralManager?
     private var transferCharacteristic: CBMutableCharacteristic?
-    private var connectedCentral: CBCentral?
+    private var lastConnectedCentral: CBCentral?
     private var dataToSend = Data()
     private var sendDataIndex: Int = 0
     private var sendText: String = ""
@@ -43,7 +43,6 @@ final class PeripheralUseCase: NSObject, ObservableObject {
 
     func start(roomName: String) {
         blueToothLog(deviceType: .periphearl, "start advertising \(roomName)")
-
         peripheralManager?.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [BlueToothInfo.serviceUUID],
                                                 CBAdvertisementDataLocalNameKey: roomName]) // 채팅방 이름
     }
@@ -88,7 +87,7 @@ final class PeripheralUseCase: NSObject, ObservableObject {
             var amountToSend = dataToSend.count - sendDataIndex
 
             // 연결된 central이 받을 수 있는 최대 양 비교
-            if let mtu = connectedCentral?.maximumUpdateValueLength {
+            if let mtu = lastConnectedCentral?.maximumUpdateValueLength {
                 amountToSend = min(amountToSend, mtu)
             }
 
@@ -183,7 +182,7 @@ extension PeripheralUseCase: CBPeripheralManagerDelegate {
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
         blueToothLog(deviceType: .periphearl, "Central subscribed to characteristic")
         // save central
-        connectedCentral = central
+        lastConnectedCentral = central
         self.peripheralConnectStatus = .success
     }
 
@@ -192,7 +191,7 @@ extension PeripheralUseCase: CBPeripheralManagerDelegate {
      */
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
         blueToothLog(deviceType: .periphearl, "Central unsubscribed from characteristic")
-        connectedCentral = nil
+        lastConnectedCentral = nil
         let unsubscribedUserName = connectedUserDic[central]
         connectedUserDic.removeValue(forKey: central)
         self.peripheralConnectStatus = .disconnected(userName: unsubscribedUserName ?? "")

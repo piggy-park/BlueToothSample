@@ -66,7 +66,7 @@ struct CentralChattingView: View {
                 let chat = ChattingText(text: "방 입장에 실패했습니다.")
                 chatHistory.append(chat)
             case .disconnected:
-                blueToothLog(deviceType: .central, "연결이 끊여졌습니다.")
+                blueToothLog(deviceType: .central, "연결이 끊어졌습니다.")
                 let chat = ChattingText(text: "연결이 끊어졌습니다.")
                 chatHistory.append(chat)
             default:
